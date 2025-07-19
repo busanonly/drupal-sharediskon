@@ -30,12 +30,17 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+.env # Ignores the base .env file
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.local.example # UNIGNORES the example file, so it can be committed as a template
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+# next-env.d.ts # REMOVED from here. It should generally be committed.
