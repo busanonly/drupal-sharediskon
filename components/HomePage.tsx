@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { LogoCard } from '@/utils/LogoCard';
 import { Slide } from '@/utils/Slideshow';
 import { KatalogCard as KatalogCardType } from '@/utils/KatalogCard';
-import { SiteInfo } from '@/utils/SiteInfo'; // Tetap diimpor karena masih ada di props
+import { SiteInfo } from '@/utils/SiteInfo';
 import Slideshow from './Slideshow';
 import KatalogCard from './KatalogCard';
 
@@ -13,7 +13,7 @@ interface HomePageProps {
   slideshowItems: Slide[];
   minimarketLogoCards: LogoCard[];
   minimarketKatalogCards: KatalogCardType[];
-  siteInfo: SiteInfo | null; // Tetap ada di props
+  siteInfo: SiteInfo | null;
 }
 
 /**
@@ -58,7 +58,7 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, minimarketKatalogCards,
         </div>
       </section>
 
-      {/* Section 3: Katalog Promo Minimarket */}
+      {/* Section 3: Katalog Promo Minimarket - Mode Swipe */}
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-12">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
@@ -70,9 +70,13 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, minimarketKatalogCards,
         </div>
         
         {Array.isArray(minimarketKatalogCards) && minimarketKatalogCards.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          // Container gulir horizontal untuk kartu katalog
+          <div className="flex overflow-x-auto snap-x snap-mandatory pb-4 hide-scrollbar">
             {minimarketKatalogCards.map((katalog) => (
-              <KatalogCard key={katalog.id} katalog={katalog} />
+              // Setiap kartu memiliki lebar responsif dan efek snap
+              <div key={katalog.id} className="flex-shrink-0 w-5/12 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6 snap-center pr-4">
+                <KatalogCard katalog={katalog} />
+              </div>
             ))}
           </div>
         ) : (
@@ -83,9 +87,6 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, minimarketKatalogCards,
           </div>
         )}
       </section>
-
-      {/* Section 4: Informasi Situs (Site Info) - SEKARANG DIHAPUS SEPENUHNYA DARI JSX */}
-      {/* Sebelumnya dikomentari, sekarang dihapus dari struktur JSX agar tidak dirender di body. */}
     </>
   );
 };

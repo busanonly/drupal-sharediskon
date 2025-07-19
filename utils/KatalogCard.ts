@@ -20,8 +20,7 @@ export interface KatalogImage {
 export interface KatalogCard {
   id: string;
   title: string;
-  // imageUrl: string; // Hapus ini, karena sekarang kita punya array images
-  images: KatalogImage[]; // <<< PERUBAHAN: Array dari objek gambar
+  images: KatalogImage[]; // Array dari objek gambar
   storeCategory: string;
   startDate: string;
   endDate: string;
@@ -49,6 +48,7 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
         params: {
           include: "field_gambar_katalog,field_kategori_toko",
           sort: "-created",
+          "page[limit]": 50, // <<< PERUBAHAN DI SINI: Ambil 50 konten terbaru
         },
       }
     );
@@ -65,7 +65,6 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
 
     const katalogCards: KatalogCard[] = validKatalogNodes
       .map((node) => {
-        // Ambil semua gambar dari field_gambar_katalog
         const rawImages = Array.isArray(node.field_gambar_katalog) ? node.field_gambar_katalog : (node.field_gambar_katalog ? [node.field_gambar_katalog] : []);
         const processedImages: KatalogImage[] = rawImages.map((img: any) => {
           const originalUrl = img.uri && img.uri.url ? `${process.env.NEXT_PUBLIC_DRUPAL_BASE_URL}${img.uri.url}` : "";
@@ -75,11 +74,11 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
               thumbnail: img.image_style_uri?.thumbnail || originalUrl,
               medium: img.image_style_uri?.medium || originalUrl,
               large: img.image_style_uri?.large || originalUrl,
-              wide: img.image_style_uri?.wide || originalUrl, // Asumsi wide style
+              wide: img.image_style_uri?.wide || originalUrl,
               original: originalUrl,
             }
           };
-        }).filter((img: KatalogImage) => img.urls.original !== ""); // Filter gambar tanpa URL asli
+        }).filter((img: KatalogImage) => img.urls.original !== "");
 
         if (processedImages.length === 0) {
           console.warn("Skipping katalog card due to no valid images:", node.id);
@@ -96,7 +95,7 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
         return {
           id: node.id,
           title: node.title,
-          images: processedImages, // Menggunakan array gambar yang sudah diproses
+          images: processedImages,
           storeCategory: categoryTerm.name || "Minimarket",
           startDate: node.field_tanggal_mulai,
           endDate: node.field_tanggal_berakhir,
@@ -128,7 +127,7 @@ export async function getKatalogDetailBySlug(slug: string): Promise<KatalogCard 
 
     const node = await drupal.getResourceByPath<any>(cleanSlug, {
       params: {
-        include: "field_gambar_katalog,field_kategori_toko", // Tetap tidak menyertakan 'body' di sini
+        include: "field_gambar_katalog,field_kategori_toko",
       },
     });
 
@@ -139,7 +138,6 @@ export async function getKatalogDetailBySlug(slug: string): Promise<KatalogCard 
 
     console.log("Node found for slug:", node.id, node.title);
 
-    // Ambil semua gambar dari field_gambar_katalog dan proses untuk berbagai gaya
     const rawImages = Array.isArray(node.field_gambar_katalog) ? node.field_gambar_katalog : (node.field_gambar_katalog ? [node.field_gambar_katalog] : []);
     const processedImages: KatalogImage[] = rawImages.map((img: any) => {
       const originalUrl = img.uri && img.uri.url ? `${process.env.NEXT_PUBLIC_DRUPAL_BASE_URL}${img.uri.url}` : "";
@@ -149,11 +147,11 @@ export async function getKatalogDetailBySlug(slug: string): Promise<KatalogCard 
           thumbnail: img.image_style_uri?.thumbnail || originalUrl,
           medium: img.image_style_uri?.medium || originalUrl,
           large: img.image_style_uri?.large || originalUrl,
-          wide: img.image_style_uri?.wide || originalUrl, // Asumsi wide style
+          wide: img.image_style_uri?.wide || originalUrl,
           original: originalUrl,
         }
       };
-    }).filter((img: KatalogImage) => img.urls.original !== ""); // Filter gambar tanpa URL asli
+    }).filter((img: KatalogImage) => img.urls.original !== "");
 
     if (processedImages.length === 0) {
       console.warn("Incomplete katalog detail data for slug:", slug, "No valid images found.");
@@ -170,7 +168,7 @@ export async function getKatalogDetailBySlug(slug: string): Promise<KatalogCard 
     return {
       id: node.id,
       title: node.title,
-      images: processedImages, // Menggunakan array gambar yang sudah diproses
+      images: processedImages,
       storeCategory: categoryTerm.name || "Minimarket",
       startDate: node.field_tanggal_mulai,
       endDate: node.field_tanggal_berakhir,
