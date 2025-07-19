@@ -1,3 +1,5 @@
+/* app/globals.css */
+
 @import "tailwindcss";
 
 :root {
@@ -5,12 +7,15 @@
   --foreground: #171717;
 }
 
-@theme inline {
+/* --- PERUBAHAN DI SINI: MENGHAPUS ATURAN @theme YANG TIDAK DIKENAL --- */
+/* Aturan @theme tidak standar dan mungkin menyebabkan masalah kompilasi CSS.
+   Variabel tema dan font biasanya dikelola melalui tailwind.config.ts atau CSS custom properties. */
+/* @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
+} */
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -23,4 +28,28 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* --- PERUBAHAN DI SINI UNTUK SPASI PARAGRAF DI KONTEN PROSE --- */
+/* Aturan ini akan memberikan margin atas dan bawah pada setiap paragraf di dalam elemen dengan kelas .prose */
+.prose p {
+  margin-top: 1.5em !important; /* Menambahkan margin atas, gunakan !important untuk memastikan override */
+  margin-bottom: 1.5em !important; /* Menambahkan margin bawah, gunakan !important untuk memastikan override */
+}
+
+/* Anda juga bisa menambahkan spasi untuk elemen lain jika diperlukan, contoh: */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  margin-top: 2em !important;
+  margin-bottom: 1em !important;
+}
+
+.prose ul,
+.prose ol {
+  margin-top: 1em !important;
+  margin-bottom: 1em !important;
 }
