@@ -4,8 +4,9 @@ console.log("DEBUG: app/[...slug]/page.tsx is being processed.");
 
 import KatalogDetail from "@/components/KatalogDetail";
 import { getKatalogDetailBySlug } from "@/utils/KatalogCard";
-import { notFound } from "next/navigation"; // Ini adalah import yang menyebabkan error "Cannot find module"
+import { notFound } from "next/navigation";
 import { drupal } from "@/lib/drupal";
+import type { Metadata } from "next"; // <<< IMPORT BARU: Metadata
 
 /**
  * Mendefinisikan tipe minimal untuk node katalog yang hanya berisi path.
@@ -23,11 +24,36 @@ interface KatalogDetailPageProps {
 }
 
 /**
+ * Fungsi generateMetadata untuk mengatur metadata halaman secara dinamis.
+ * Ini akan mengambil judul dari node katalog dan menggunakannya sebagai judul halaman.
+ */
+export async function generateMetadata({ params }: KatalogDetailPageProps): Promise<Metadata> {
+  const resolvedParams = await params;
+  const slugPath = `/${resolvedParams.slug.join('/')}`;
+  const katalog = await getKatalogDetailBySlug(slugPath);
+
+  if (!katalog) {
+    // Jika katalog tidak ditemukan, kembalikan metadata default atau kosong
+    return {
+      title: "Katalog Tidak Ditemukan | sharediskon.com",
+      // description: "Halaman katalog tidak ada.", // DIHAPUS
+    };
+  }
+
+  return {
+    title: `${katalog.title} | sharediskon.com`, 
+    // description: katalog.body ? katalog.body.substring(0, 150) + "..." : undefined, // DIHAPUS
+    // keywords: katalog.storeCategory ? [katalog.storeCategory, "promo", "diskon"] : ["promo", "diskon"], // DIHAPUS
+  };
+}
+
+
+/**
  * Komponen halaman dinamis untuk menampilkan detail katalog promosi.
  * Mengambil slug dari parameter URL dan memuat data katalog yang sesuai.
  */
 export default async function KatalogDetailPage({ params }: KatalogDetailPageProps) {
-  const resolvedParams = await params; 
+  const resolvedParams = await params;
   console.log("KatalogDetailPage - Received params:", resolvedParams);
   
   const slugPath = `/${resolvedParams.slug.join('/')}`;
@@ -36,14 +62,13 @@ export default async function KatalogDetailPage({ params }: KatalogDetailPagePro
 
   const katalog = await getKatalogDetailBySlug(slugPath);
 
-  // Jika katalog tidak ditemukan, tampilkan halaman 404
+  console.log("KatalogDetailPage - Katalog data received:", katalog ? katalog.title : "Not found");
+
   if (!katalog) {
     notFound();
   }
 
-  // PERBAIKAN DI SINI: Type assertion untuk memberi tahu TypeScript bahwa katalog bukan null setelah pengecekan.
-  // Ini mengatasi error "Type 'KatalogCard | null' is not assignable to type 'KatalogCard'."
-  console.log("KatalogDetailPage - Katalog data received:", katalog.title); // Katalog dijamin tidak null di sini
+  console.log("KatalogDetailPage - Katalog data received:", katalog.title);
 
   return (
     <KatalogDetail katalog={katalog} />
@@ -72,16 +97,14 @@ export async function generateStaticParams() {
     console.log(`generateStaticParams - Found ${katalogNodes.length} katalog nodes.`);
 
     const params = katalogNodes
-      // PERBAIKAN DI SINI: Memberikan tipe eksplisit pada parameter 'node'
-      .map((node: MinimalKatalogNode) => { 
+      .map((node: MinimalKatalogNode) => {
         if (node.path && typeof node.path.alias === 'string' && node.path.alias.length > 0) {
           const slugArray = node.path.alias.substring(1).split('/');
           return { slug: slugArray };
         }
         return null;
       })
-      // PERBAIKAN DI SINI: Memberikan tipe eksplisit pada parameter 'param'
-      .filter((param: { slug: string[] } | null) => param !== null); 
+      .filter((param: { slug: string[] } | null) => param !== null);
 
     console.log("generateStaticParams - Generated static params:", params);
     return params;

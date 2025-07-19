@@ -4,22 +4,30 @@ import Image from 'next/image';
 import { LogoCard } from '@/utils/LogoCard';
 import { Slide } from '@/utils/Slideshow';
 import { KatalogCard as KatalogCardType } from '@/utils/KatalogCard';
+import { SiteInfo } from '@/utils/SiteInfo'; // Tetap diimpor karena masih ada di props
 import Slideshow from './Slideshow';
-import KatalogCard from './KatalogCard'; 
+import KatalogCard from './KatalogCard';
 
+// Mendefinisikan props yang akan diterima oleh komponen HomePage.
 interface HomePageProps {
   slideshowItems: Slide[];
   minimarketLogoCards: LogoCard[];
   minimarketKatalogCards: KatalogCardType[];
+  siteInfo: SiteInfo | null; // Tetap ada di props
 }
 
-const HomePage = ({ slideshowItems, minimarketLogoCards, minimarketKatalogCards }: HomePageProps) => {
+/**
+ * Komponen utama untuk halaman beranda yang menyusun berbagai section.
+ */
+const HomePage = ({ slideshowItems, minimarketLogoCards, minimarketKatalogCards, siteInfo }: HomePageProps) => {
   return (
     <>
+      {/* Section 1: Slideshow */}
       <section className="mb-12">
         {Array.isArray(slideshowItems) && <Slideshow slides={slideshowItems} />}
       </section>
 
+      {/* Section 2: Sharediskon Minimarket (Logo Cards) */}
       <section className="bg-gray-50 dark:bg-gray-800 py-12 sm:py-16 rounded-lg mb-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
@@ -30,7 +38,6 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, minimarketKatalogCards 
               Temukan promosi dan diskon eksklusif dari berbagai minimarket favorit Anda.
             </p>
           </div>
-          {/* PERUBAHAN DI SINI: md:grid-cols-6 */}
           <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
             {Array.isArray(minimarketLogoCards) && minimarketLogoCards.map((logo) => (
               <div
@@ -51,6 +58,7 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, minimarketKatalogCards 
         </div>
       </section>
 
+      {/* Section 3: Katalog Promo Minimarket */}
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-12">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
@@ -75,6 +83,9 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, minimarketKatalogCards 
           </div>
         )}
       </section>
+
+      {/* Section 4: Informasi Situs (Site Info) - SEKARANG DIHAPUS SEPENUHNYA DARI JSX */}
+      {/* Sebelumnya dikomentari, sekarang dihapus dari struktur JSX agar tidak dirender di body. */}
     </>
   );
 };
