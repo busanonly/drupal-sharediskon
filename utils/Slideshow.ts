@@ -1,68 +1,70 @@
 // utils/Slideshow.ts
 
 import { drupal } from "../lib/drupal";
+import { fetchWithRetry } from "./KatalogCard"; // <<< PERBAIKAN DI SINI: IMPORT fetchWithRetry
 
-// Mendefinisikan struktur data yang bersih untuk setiap item slideshow.
 export interface Slide {
   id: string;
   imageUrl: string;
-  linkUrl: string;
+  alt: string;
   title: string;
+  link: string;
 }
 
 /**
- * Mengambil semua item dari tipe konten Slideshow.
- * Fungsi ini mengambil gambar asli dari field_slideshow dan link dari field_link.
+ * Mengambil item slideshow dari Drupal.
  * @returns {Promise<Slide[]>} Sebuah array dari objek Slide.
  */
 export async function getSlideshowItems(): Promise<Slide[]> {
+  console.log("getSlideshowItems - Attempting to fetch slideshow items."); // Log awal
   try {
-    // Mengambil koleksi resource dari tipe konten 'node--slideshow'.
-    const slideshowNodes = await drupal.getResourceCollection<any[]>(
-      "node--slideshow",
-      {
-        params: {
-          // Meminta Drupal untuk menyertakan data dari relasi gambar.
-          include: "field_slideshow",
-          // Mengurutkan berdasarkan tanggal dibuat, yang terbaru lebih dulu.
-          sort: "-created",
-        },
-      }
-    );
+    // PERBAIKAN DI SINI: Menggunakan fetchWithRetry untuk pengambilan koleksi sumber daya
+    const slideshowNodes = await fetchWithRetry(async () => {
+      return await drupal.getResourceCollection<any[]>(
+        "node--slideshow",
+        {
+          params: {
+            include: "field_slideshow", // Sertakan relasi gambar slideshow
+            sort: "-created",
+            "page[limit]": 5, // Batasi jumlah slide yang diambil (sesuaikan jika perlu)
+          },
+        }
+      );
+    }, 3, 1500); // Coba 3 kali, mulai dengan delay 1.5 detik
 
-    // Jika tidak ada node slideshow, kembalikan array kosong.
+    console.log(`getSlideshowItems - Fetched ${slideshowNodes ? slideshowNodes.length : 0} raw nodes.`); // Log jumlah node mentah
+
     if (!slideshowNodes || slideshowNodes.length === 0) {
-      console.log("No slideshow nodes found.");
+      console.warn("getSlideshowItems - No slideshow nodes found."); // Log jika tidak ditemukan
       return [];
     }
 
-    // Memproses setiap node menjadi struktur Slide yang lebih bersih.
-    const slides: Slide[] = slideshowNodes.map((node) => {
-        const image = node.field_slideshow;
-        const link = node.field_link;
+    const slides: Slide[] = slideshowNodes
+      .map((node) => {
+        const slideImage = node.field_slideshow; // Asumsi ini adalah objek gambar tunggal
 
-        // Pastikan semua data yang dibutuhkan ada.
-        if (image && image.uri?.url && link && link.uri) {
-          // Membuat URL gambar menjadi absolut.
-          const imageUrl = `${process.env.NEXT_PUBLIC_DRUPAL_BASE_URL}${image.uri.url}`;
-          
-          return {
-            id: node.id,
-            imageUrl: imageUrl,
-            linkUrl: link.uri, // Mengambil URL dari field link
-            title: image.meta?.alt || node.title, // Menggunakan alt text gambar atau judul node
-          };
+        if (!slideImage || (!slideImage.uri?.url)) { // Cek hanya uri.url karena tidak ada styles di sini
+          console.warn(`Skipping slideshow item for node ${node.id} due to missing image URL.`);
+          return null;
         }
-        
-        return null;
-      })
-      .filter((slide): slide is Slide => slide !== null); // Menyaring hasil yang null
 
+        const imageUrl = `${process.env.NEXT_PUBLIC_DRUPAL_BASE_URL}${slideImage.uri.url}`;
+
+        return {
+          id: node.id,
+          imageUrl: imageUrl,
+          alt: slideImage.alt || node.title,
+          title: node.title,
+          link: node.path?.alias || "#", // Menggunakan path alias sebagai link, fallback ke #
+        };
+      })
+      .filter((slide): slide is Slide => slide !== null); // Filter entri null
+
+    console.log(`getSlideshowItems - Returning ${slides.length} final slides.`); // Log jumlah slide akhir
     return slides;
 
   } catch (error) {
-    // Menangani jika terjadi error saat fetching.
-    console.error("Failed to fetch slideshow items:", error);
+    console.error("getSlideshowItems - Failed to fetch slideshow items after retries:", error); // Log error
     return [];
   }
 }
