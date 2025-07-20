@@ -18,6 +18,17 @@ interface MinimalKatalogNode {
   status: boolean;
 }
 
+// PERUBAHAN DI SINI: Antarmuka baru untuk respons koleksi dari Drupal
+// Ini mencakup array data dan properti 'links' untuk paginasi.
+interface DrupalCollectionWithLinks<T> extends Array<T> {
+  links?: {
+    next?: {
+      href: string;
+    };
+    // Anda bisa menambahkan properti link lain seperti 'last', 'first', 'prev' jika diperlukan
+  };
+}
+
 // Mendefinisikan tipe PageProps secara eksplisit untuk menangani params sebagai Promise
 interface KatalogDetailPageProps {
   params: Promise<{ slug: string[] }>;
@@ -78,22 +89,40 @@ export default async function KatalogDetailPage({ params }: KatalogDetailPagePro
  */
 export async function generateStaticParams() {
   try {
-    console.log("generateStaticParams - Starting to fetch all katalog nodes for slugs...");
-    const katalogNodes = await drupal.getResourceCollection<MinimalKatalogNode[]>(
-      "node--katalog_promosi",
-      {
-        params: {
-          "fields[node--katalog_promosi]": "path,status",
-          "filter[status]": 1, 
-          // <<< PERUBAHAN DI SINI: Hapus "page[limit]": 100,
-          // Ini akan mengambil semua node yang dipublikasikan.
-        },
+    console.log("generateStaticParams - Starting to fetch ALL katalog nodes for slugs...");
+    let allKatalogNodes: MinimalKatalogNode[] = [];
+    let nextUrl: string | null = null;
+    let page = 0;
+
+    do {
+      // PERUBAHAN DI SINI: Menggunakan tipe baru untuk respons
+      const response: DrupalCollectionWithLinks<MinimalKatalogNode> = await drupal.getResourceCollection<DrupalCollectionWithLinks<MinimalKatalogNode>>(
+        "node--katalog_promosi",
+        {
+          params: {
+            "fields[node--katalog_promosi]": "path,status",
+            "filter[status]": 1, 
+          },
+          ...(nextUrl && { path: nextUrl.replace(drupal.baseUrl, "") }),
+        }
+      );
+
+      if (!response || response.length === 0) {
+        console.log(`generateStaticParams - No more nodes found after page ${page}.`);
+        break;
       }
-    );
 
-    console.log(`generateStaticParams - Found ${katalogNodes.length} katalog nodes.`);
+      allKatalogNodes = allKatalogNodes.concat(response);
+      
+      nextUrl = response.links?.next?.href || null;
+      page++;
+      console.log(`generateStaticParams - Fetched page ${page}, total nodes so far: ${allKatalogNodes.length}. Next URL: ${nextUrl || 'none'}`);
 
-    const params = katalogNodes
+    } while (nextUrl);
+
+    console.log(`generateStaticParams - Found a total of ${allKatalogNodes.length} katalog nodes across all pages.`);
+
+    const params = allKatalogNodes
       .map((node: MinimalKatalogNode) => {
         if (node.path && typeof node.path.alias === 'string' && node.path.alias.length > 0) {
           const slugArray = node.path.alias.substring(1).split('/');
@@ -103,11 +132,14 @@ export async function generateStaticParams() {
       })
       .filter((param: { slug: string[] } | null) => param !== null);
 
-    console.log("generateStaticParams - Generated static params:", params);
-    return params;
+    console.log(`generateStaticParams - Generated ${params.length} static params.`);
+    console.log("generateStaticParams - Generated static params (sample):", params.slice(0, 5));
 
+    return params;
   } catch (error) {
     console.error("generateStaticParams - Error generating static params for katalog promosi:", error);
     return [];
   }
 }
+
+export const dynamicParams = true;
