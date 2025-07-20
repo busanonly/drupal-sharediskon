@@ -48,7 +48,7 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
         params: {
           include: "field_gambar_katalog,field_kategori_toko",
           sort: "-created",
-          "page[limit]": 50, // <<< PERUBAHAN DI SINI: Ambil 50 konten terbaru
+          "page[limit]": 50, // Ambil 50 konten terbaru
         },
       }
     );
