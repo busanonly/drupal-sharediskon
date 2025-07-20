@@ -5,7 +5,7 @@
 import Image from "next/image";
 import { Slide } from "@/utils/Slideshow";
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link"; // <<< PERBAIKAN DI SINI: IMPORT Link
+import Link from "next/link";
 
 interface SlideshowProps {
   slides: Slide[];
@@ -45,7 +45,9 @@ const Slideshow = ({ slides }: SlideshowProps) => {
           alt={currentSlide.alt}
           fill
           sizes="100vw"
-          className="object-cover"
+          // PERUBAHAN DI SINI: Menambahkan kelas transisi untuk efek fade
+          className="object-cover transition-opacity duration-500 ease-in-out opacity-100"
+          key={currentSlide.id} // Menambahkan key agar React me-re-render Image dan memicu transisi
           unoptimized
         />
       </div>
