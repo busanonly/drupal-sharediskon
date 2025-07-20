@@ -41,7 +41,7 @@ interface TaxonomyTerm {
  * @param {number} delay - Penundaan (dalam ms) sebelum mencoba kembali.
  * @returns {Promise<T>} Hasil dari fungsi yang dijalankan.
  */
-export async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> { // <<< PERBAIKAN DI SINI: TAMBAHKAN 'export'
+export async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
   try {
     return await fn();
   } catch (error) {
@@ -62,8 +62,8 @@ export async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delay
  * @returns {Promise<KatalogCard[]>} Sebuah array dari objek KatalogCard.
  */
 export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]> {
+  console.log(`getKatalogCards - Attempting to fetch for categoryId: ${categoryId}`);
   try {
-    // Menggunakan fetchWithRetry untuk pengambilan koleksi sumber daya
     const katalogNodes = await fetchWithRetry(async () => {
       return await drupal.getResourceCollection<any[]>(
         "node--katalog_promosi",
@@ -77,16 +77,20 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
       );
     }, 3, 1500); // Coba 3 kali, mulai dengan delay 1.5 detik
 
+    console.log(`getKatalogCards - Fetched ${katalogNodes ? katalogNodes.length : 0} raw nodes for categoryId: ${categoryId}`);
+
     if (!katalogNodes || katalogNodes.length === 0) {
-      console.warn(`No katalog nodes found for category: ${categoryId}`);
+      console.warn(`getKatalogCards - No raw nodes found for categoryId: ${categoryId}`);
       return [];
     }
 
-    const validKatalogNodes = katalogNodes.filter(node => 
-      Array.isArray(node.field_kategori_toko) && 
-      node.field_kategori_toko.some((term: TaxonomyTerm) => term.id === categoryId) &&
-      node.path && typeof node.path.alias === 'string' && node.path.alias.length > 0
-    );
+    const validKatalogNodes = katalogNodes.filter(node => {
+      const isMatch = Array.isArray(node.field_kategori_toko) && 
+                      node.field_kategori_toko.some((term: TaxonomyTerm) => term.id === categoryId);
+      return isMatch && node.path && typeof node.path.alias === 'string' && node.path.alias.length > 0;
+    });
+
+    console.log(`getKatalogCards - Filtered down to ${validKatalogNodes.length} valid nodes for categoryId: ${categoryId}`);
 
     const katalogCards: KatalogCard[] = validKatalogNodes
       .map((node) => {
@@ -110,7 +114,7 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
           return null;
         }
 
-        const categoryTerm = Array.isArray(node.field_kategori_toko) ? node.field_kategori_toko.find((term: TaxonomyTerm) => term.id === node.field_kategori_toko[0]?.id) : undefined;
+        const categoryTerm = Array.isArray(node.field_kategori_toko) ? node.field_kategori_toko.find((term: TaxonomyTerm) => term.id === categoryId) : undefined;
 
         if (!categoryTerm) {
           console.warn(`Skipping katalog card for node ${node.id} due to missing category term.`);
@@ -129,10 +133,11 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
       })
       .filter((card): card is KatalogCard => card !== null);
 
+    console.log(`getKatalogCards - Returning ${katalogCards.length} final katalog cards for categoryId: ${categoryId}`);
     return katalogCards;
 
   } catch (error) {
-    console.error(`Failed to fetch logo cards for category ${categoryId} after retries:`, error);
+    console.error(`getKatalogCards - Failed to fetch or process for categoryId ${categoryId} after retries:`, error);
     return [];
   }
 }
@@ -186,7 +191,14 @@ export async function getKatalogDetailBySlug(slug: string): Promise<KatalogCard 
       return null;
     }
 
-    const categoryTerm = Array.isArray(node.field_kategori_toko) ? node.field_kategori_toko.find((term: TaxonomyTerm) => term.id === node.field_kategori_toko[0]?.id) : undefined;
+    // PERBAIKAN DI SINI: categoryTerm harus ditemukan berdasarkan node.field_kategori_toko
+    // Bukan berdasarkan categoryId yang tidak ada di scope ini.
+    const categoryTerm = Array.isArray(node.field_kategori_toko) ? node.field_kategori_toko[0] : undefined; 
+    // Jika Anda ingin lebih spesifik, Anda bisa mencari term berdasarkan ID yang sudah Anda ketahui
+    // misalnya, jika Anda ingin selalu menampilkan kategori Minimarket/Supermarket yang relevan
+    // Anda bisa mendapatkan ID kategori dari node.field_kategori_toko dan mencari namanya di tempat lain
+    // Tapi untuk tujuan ini, mengambil term pertama sudah cukup jika node hanya punya 1 kategori utama.
+
 
     if (!categoryTerm || !node.path?.alias) {
       console.warn(`Incomplete katalog detail data for slug: ${slug}, Missing category or alias.`);
@@ -197,7 +209,7 @@ export async function getKatalogDetailBySlug(slug: string): Promise<KatalogCard 
       id: node.id,
       title: node.title,
       images: processedImages,
-      storeCategory: categoryTerm.name || "Minimarket",
+      storeCategory: categoryTerm.name || "Minimarket", // Menggunakan categoryTerm.name
       startDate: node.field_tanggal_mulai,
       endDate: node.field_tanggal_berakhir,
       slug: node.path.alias,
