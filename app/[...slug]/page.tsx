@@ -6,7 +6,7 @@ import KatalogDetail from "@/components/KatalogDetail";
 import { getKatalogDetailBySlug } from "@/utils/KatalogCard";
 import { notFound } from "next/navigation";
 import { drupal } from "@/lib/drupal";
-import type { Metadata } from "next"; // <<< IMPORT BARU: Metadata
+import type { Metadata } from "next";
 
 /**
  * Mendefinisikan tipe minimal untuk node katalog yang hanya berisi path.
@@ -33,17 +33,13 @@ export async function generateMetadata({ params }: KatalogDetailPageProps): Prom
   const katalog = await getKatalogDetailBySlug(slugPath);
 
   if (!katalog) {
-    // Jika katalog tidak ditemukan, kembalikan metadata default atau kosong
     return {
       title: "Katalog Tidak Ditemukan | sharediskon.com",
-      // description: "Halaman katalog tidak ada.", // DIHAPUS
     };
   }
 
   return {
     title: `${katalog.title} | sharediskon.com`, 
-    // description: katalog.body ? katalog.body.substring(0, 150) + "..." : undefined, // DIHAPUS
-    // keywords: katalog.storeCategory ? [katalog.storeCategory, "promo", "diskon"] : ["promo", "diskon"], // DIHAPUS
   };
 }
 
@@ -89,7 +85,8 @@ export async function generateStaticParams() {
         params: {
           "fields[node--katalog_promosi]": "path,status",
           "filter[status]": 1, 
-          "page[limit]": 100,
+          // <<< PERUBAHAN DI SINI: Hapus "page[limit]": 100,
+          // Ini akan mengambil semua node yang dipublikasikan.
         },
       }
     );
