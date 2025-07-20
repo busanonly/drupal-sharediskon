@@ -35,6 +35,27 @@ interface TaxonomyTerm {
 }
 
 /**
+ * Fungsi helper untuk melakukan fetch dengan mekanisme retry.
+ * @param {Function} fn - Fungsi async yang akan dijalankan (misal: panggilan drupal.getResourceByPath).
+ * @param {number} retries - Jumlah percobaan ulang maksimum.
+ * @param {number} delay - Penundaan (dalam ms) sebelum mencoba kembali.
+ * @returns {Promise<T>} Hasil dari fungsi yang dijalankan.
+ */
+export async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> { // <<< PERBAIKAN DI SINI: TAMBAHKAN 'export'
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries > 0) {
+      console.warn(`Fetch failed, retrying in ${delay}ms... (Retries left: ${retries})`, error);
+      await new Promise(res => setTimeout(res, delay));
+      return fetchWithRetry(fn, retries - 1, delay * 2); // Eksponensial backoff
+    }
+    throw error; // Lempar error jika tidak ada retry lagi
+  }
+}
+
+
+/**
  * Mengambil item dari tipe konten Katalog Promosi, difilter berdasarkan ID kategori.
  * Digunakan untuk daftar kartu ringkasan.
  * @param {string} categoryId - UUID dari term taksonomi kategori toko untuk difilter.
@@ -42,18 +63,22 @@ interface TaxonomyTerm {
  */
 export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]> {
   try {
-    const katalogNodes = await drupal.getResourceCollection<any[]>(
-      "node--katalog_promosi",
-      {
-        params: {
-          include: "field_gambar_katalog,field_kategori_toko",
-          sort: "-created",
-          "page[limit]": 50, // Ambil 50 konten terbaru
-        },
-      }
-    );
+    // Menggunakan fetchWithRetry untuk pengambilan koleksi sumber daya
+    const katalogNodes = await fetchWithRetry(async () => {
+      return await drupal.getResourceCollection<any[]>(
+        "node--katalog_promosi",
+        {
+          params: {
+            include: "field_gambar_katalog,field_kategori_toko",
+            sort: "-created",
+            "page[limit]": 50, // Ambil 50 konten terbaru
+          },
+        }
+      );
+    }, 3, 1500); // Coba 3 kali, mulai dengan delay 1.5 detik
 
     if (!katalogNodes || katalogNodes.length === 0) {
+      console.warn(`No katalog nodes found for category: ${categoryId}`);
       return [];
     }
 
@@ -81,14 +106,14 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
         }).filter((img: KatalogImage) => img.urls.original !== "");
 
         if (processedImages.length === 0) {
-          console.warn("Skipping katalog card due to no valid images:", node.id);
+          console.warn(`Skipping katalog card for node ${node.id} due to no valid images.`);
           return null;
         }
 
         const categoryTerm = Array.isArray(node.field_kategori_toko) ? node.field_kategori_toko.find((term: TaxonomyTerm) => term.id === node.field_kategori_toko[0]?.id) : undefined;
 
         if (!categoryTerm) {
-          console.warn("Skipping katalog card due to missing category term after slug check:", node.id);
+          console.warn(`Skipping katalog card for node ${node.id} due to missing category term.`);
           return null;
         }
 
@@ -107,7 +132,7 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
     return katalogCards;
 
   } catch (error) {
-    console.error(`Failed to fetch katalog promosi items for category ${categoryId}:`, error);
+    console.error(`Failed to fetch logo cards for category ${categoryId} after retries:`, error);
     return [];
   }
 }
@@ -119,17 +144,20 @@ export async function getKatalogCards(categoryId: string): Promise<KatalogCard[]
  * @returns {Promise<KatalogCard | null>} Objek KatalogCard tunggal atau null jika tidak ditemukan.
  */
 export async function getKatalogDetailBySlug(slug: string): Promise<KatalogCard | null> {
+  console.log("Attempting to fetch detail for slug:", slug);
+
+  const cleanSlug = slug.startsWith('/') ? slug.substring(1) : slug;
+  console.log("Cleaned slug for getResourceByPath:", cleanSlug);
+
   try {
-    console.log("Attempting to fetch detail for slug:", slug);
-
-    const cleanSlug = slug.startsWith('/') ? slug.substring(1) : slug;
-    console.log("Cleaned slug for getResourceByPath:", cleanSlug);
-
-    const node = await drupal.getResourceByPath<any>(cleanSlug, {
-      params: {
-        include: "field_gambar_katalog,field_kategori_toko",
-      },
-    });
+    // Menggunakan fetchWithRetry
+    const node = await fetchWithRetry(async () => {
+      return await drupal.getResourceByPath<any>(cleanSlug, {
+        params: {
+          include: "field_gambar_katalog,field_kategori_toko",
+        },
+      });
+    }, 3, 2000); // Coba 3 kali, mulai dengan delay 2 detik (2000ms)
 
     if (!node) {
       console.warn("No node found for slug:", slug);
@@ -154,14 +182,14 @@ export async function getKatalogDetailBySlug(slug: string): Promise<KatalogCard 
     }).filter((img: KatalogImage) => img.urls.original !== "");
 
     if (processedImages.length === 0) {
-      console.warn("Incomplete katalog detail data for slug:", slug, "No valid images found.");
+      console.warn(`Incomplete katalog detail data for slug: ${slug}, No valid images found.`);
       return null;
     }
 
     const categoryTerm = Array.isArray(node.field_kategori_toko) ? node.field_kategori_toko.find((term: TaxonomyTerm) => term.id === node.field_kategori_toko[0]?.id) : undefined;
 
     if (!categoryTerm || !node.path?.alias) {
-      console.warn("Incomplete katalog detail data for slug:", slug, "Missing category or alias.");
+      console.warn(`Incomplete katalog detail data for slug: ${slug}, Missing category or alias.`);
       return null;
     }
 
@@ -177,7 +205,7 @@ export async function getKatalogDetailBySlug(slug: string): Promise<KatalogCard 
     };
 
   } catch (error) {
-    console.error(`Failed to fetch katalog detail for slug ${slug}:`, error);
+    console.error(`Failed to fetch katalog detail for slug ${slug} after retries:`, error);
     return null;
   }
 }

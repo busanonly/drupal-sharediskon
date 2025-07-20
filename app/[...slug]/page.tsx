@@ -18,14 +18,12 @@ interface MinimalKatalogNode {
   status: boolean;
 }
 
-// PERUBAHAN DI SINI: Antarmuka baru untuk respons koleksi dari Drupal
-// Ini mencakup array data dan properti 'links' untuk paginasi.
+// Antarmuka untuk respons koleksi dari Drupal dengan properti 'links' untuk paginasi.
 interface DrupalCollectionWithLinks<T> extends Array<T> {
   links?: {
     next?: {
       href: string;
     };
-    // Anda bisa menambahkan properti link lain seperti 'last', 'first', 'prev' jika diperlukan
   };
 }
 
@@ -95,17 +93,19 @@ export async function generateStaticParams() {
     let page = 0;
 
     do {
-      // PERUBAHAN DI SINI: Menggunakan tipe baru untuk respons
-      const response: DrupalCollectionWithLinks<MinimalKatalogNode> = await drupal.getResourceCollection<DrupalCollectionWithLinks<MinimalKatalogNode>>(
-        "node--katalog_promosi",
-        {
-          params: {
-            "fields[node--katalog_promosi]": "path,status",
-            "filter[status]": 1, 
-          },
-          ...(nextUrl && { path: nextUrl.replace(drupal.baseUrl, "") }),
-        }
-      );
+      // PERUBAHAN DI SINI: Menggunakan fetchWithRetry untuk pengambilan koleksi sumber daya
+      const response: DrupalCollectionWithLinks<MinimalKatalogNode> = await fetchWithRetry(async () => {
+        return await drupal.getResourceCollection<DrupalCollectionWithLinks<MinimalKatalogNode>>(
+          "node--katalog_promosi",
+          {
+            params: {
+              "fields[node--katalog_promosi]": "path,status",
+              "filter[status]": 1, 
+            },
+            ...(nextUrl && { path: nextUrl.replace(drupal.baseUrl, "") }),
+          }
+        );
+      }, 5, 3000); // Coba 5 kali, mulai dengan delay 3 detik (3000ms)
 
       if (!response || response.length === 0) {
         console.log(`generateStaticParams - No more nodes found after page ${page}.`);
@@ -142,4 +142,4 @@ export async function generateStaticParams() {
   }
 }
 
-export const dynamicParams = true;
+export const dynamicParams = true; // Mempertahankan fallback: 'blocking'
