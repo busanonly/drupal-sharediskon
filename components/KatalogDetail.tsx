@@ -177,10 +177,11 @@ const KatalogDetail = ({ katalog }: KatalogDetailProps) => {
 
         {/* Konten Body (deskripsi promo) */}
         {katalog.body && (
-          // PASTIKAN KELAS 'prose' ADA DI SINI
+          // PERBAIKAN POTENSIAL DI SINI: Tambahkan key prop jika masalahnya adalah dangerouslySetInnerHTML
           <div 
             className="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200" 
             dangerouslySetInnerHTML={{ __html: katalog.body }} 
+            key={katalog.id} // <<< TAMBAHKAN KEY INI
           />
         )}
 
