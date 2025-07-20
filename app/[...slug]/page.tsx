@@ -7,6 +7,7 @@ import { getKatalogDetailBySlug } from "@/utils/KatalogCard";
 import { notFound } from "next/navigation";
 import { drupal } from "@/lib/drupal";
 import type { Metadata } from "next";
+import { fetchWithRetry } from "@/utils/KatalogCard"; // <<< PERBAIKAN DI SINI: IMPORT fetchWithRetry
 
 /**
  * Mendefinisikan tipe minimal untuk node katalog yang hanya berisi path.
@@ -93,7 +94,7 @@ export async function generateStaticParams() {
     let page = 0;
 
     do {
-      // PERUBAHAN DI SINI: Menggunakan fetchWithRetry untuk pengambilan koleksi sumber daya
+      // Menggunakan fetchWithRetry untuk pengambilan koleksi sumber daya
       const response: DrupalCollectionWithLinks<MinimalKatalogNode> = await fetchWithRetry(async () => {
         return await drupal.getResourceCollection<DrupalCollectionWithLinks<MinimalKatalogNode>>(
           "node--katalog_promosi",
@@ -142,4 +143,4 @@ export async function generateStaticParams() {
   }
 }
 
-export const dynamicParams = true; // Mempertahankan fallback: 'blocking'
+export const dynamicParams = true;
