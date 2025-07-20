@@ -12,16 +12,17 @@ import KatalogCard from './KatalogCard';
 interface HomePageProps {
   slideshowItems: Slide[];
   minimarketLogoCards: LogoCard[];
-  supermarketLogoCards: LogoCard[]; // <<< PERBAIKAN DI SINI: TAMBAHKAN PROP INI
+  supermarketLogoCards: LogoCard[]; 
   minimarketKatalogCards: KatalogCardType[];
-  supermarketLogoCardsBelowKatalog: LogoCard[];
+  supermarketLogoCardsBelowKatalog: LogoCard[]; 
+  supermarketKatalogCards: KatalogCardType[]; // <<< PERBAIKAN DI SINI: TAMBAHKAN PROP INI
   siteInfo: SiteInfo | null;
 }
 
 /**
  * Komponen utama untuk halaman beranda yang menyusun berbagai section.
  */
-const HomePage = ({ slideshowItems, minimarketLogoCards, supermarketLogoCards, minimarketKatalogCards, supermarketLogoCardsBelowKatalog, siteInfo }: HomePageProps) => {
+const HomePage = ({ slideshowItems, minimarketLogoCards, supermarketLogoCards, minimarketKatalogCards, supermarketLogoCardsBelowKatalog, supermarketKatalogCards, siteInfo }: HomePageProps) => {
   return (
     <>
       {/* Section 1: Slideshow */}
@@ -88,7 +89,7 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, supermarketLogoCards, m
         )}
       </section>
 
-      {/* SECTION BARU: Sharediskon Supermarket (Logo Cards) - Ini adalah section yang sebelumnya untuk Katalog Promo Supermarket */}
+      {/* SECTION: Sharediskon Supermarket (Logo Cards) - Sudah ada dari permintaan sebelumnya */}
       <section className="bg-gray-50 dark:bg-gray-800 py-12 sm:py-16 rounded-lg mb-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
@@ -99,7 +100,6 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, supermarketLogoCards, m
               Temukan promosi dan diskon eksklusif dari berbagai supermarket favorit Anda.
             </p>
           </div>
-          {/* Menggunakan supermarketLogoCardsBelowKatalog di sini */}
           <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
             {Array.isArray(supermarketLogoCardsBelowKatalog) && supermarketLogoCardsBelowKatalog.map((logo) => (
               <div
@@ -120,10 +120,7 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, supermarketLogoCards, m
         </div>
       </section>
 
-      {/* Section Katalog Promo Supermarket yang asli (sekarang dihapus atau dikomentari jika tidak diperlukan lagi) */}
-      {/* Jika Anda tidak lagi ingin menampilkan Katalog Promo Supermarket, Anda bisa menghapus section ini. */}
-      {/* Untuk saat ini, saya akan mengomentarinya agar Anda bisa memutuskan. */}
-      {/*
+      {/* SECTION BARU: Katalog Promo Supermarket (Katalog Cards) */}
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-12">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
@@ -150,7 +147,6 @@ const HomePage = ({ slideshowItems, minimarketLogoCards, supermarketLogoCards, m
           </div>
         )}
       </section>
-      */}
     </>
   );
 };

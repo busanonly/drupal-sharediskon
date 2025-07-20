@@ -1,7 +1,7 @@
 // app/page.tsx
 
 import HomePage from "@/components/HomePage";
-import { getLogoCards } from "@/utils/LogoCard"; // Pastikan ini diimpor
+import { getLogoCards } from "@/utils/LogoCard"; 
 import { getSlideshowItems } from "@/utils/Slideshow";
 import { getKatalogCards } from "@/utils/KatalogCard";
 import { getSiteInfo, SiteInfo } from "@/utils/SiteInfo";
@@ -11,22 +11,26 @@ import { getSiteInfo, SiteInfo } from "@/utils/SiteInfo";
  * Sebagai Server Component, ia dapat mengambil data secara langsung.
  */
 export default async function Page() {
+  // UUID untuk kategori Minimarket (sudah dikonfirmasi)
+  const MINIMARKET_CATEGORY_UUID = "4b53f953-2657-400d-a68f-dc49a373948f";
+  // UUID yang benar untuk kategori Supermarket (berdasarkan drupal_internal__target_id: 18)
+  const SUPERMARKET_CATEGORY_UUID = "f6b60dc4-149b-4bc0-950d-b49bd4fd089f"; 
+
   const [
     minimarketLogoCards, 
-    supermarketLogoCards, // Logo Cards untuk section pertama Supermarket (jika ada)
+    supermarketLogoCards, 
     slideshowItems,
     minimarketKatalogCards,
-    supermarketLogoCardsBelowKatalog, // <<< PERUBAHAN DI SINI: Variabel baru untuk Logo Cards di bawah Katalog
+    supermarketLogoCardsBelowKatalog, 
+    supermarketKatalogCards, 
     siteInfo,
   ] = await Promise.all([
     getLogoCards("Minimarket"),
-    getLogoCards("Supermarket"), // Logo Cards untuk section pertama Supermarket
-    getSlideshowItems(),
-    getKatalogCards("4b53f953-2657-400d-a68f-dc49a373948f"), // UUID untuk kategori Minimarket Katalog
-    // <<< PERUBAHAN DI SINI: Mengubah getKatalogCards menjadi getLogoCards >>>
-    // Mengambil Logo Card untuk kategori 'Supermarket' di posisi ini.
-    // PENTING: Ganti 'Supermarket' dengan nama kategori yang tepat jika berbeda.
     getLogoCards("Supermarket"), 
+    getSlideshowItems(),
+    getKatalogCards(MINIMARKET_CATEGORY_UUID), // Menggunakan UUID Minimarket
+    getLogoCards("Supermarket"), 
+    getKatalogCards(SUPERMARKET_CATEGORY_UUID), // <<< MENGGUNAKAN UUID SUPERMARKET YANG BENAR DI SINI
     getSiteInfo(),
   ]);
 
@@ -34,9 +38,10 @@ export default async function Page() {
     <HomePage
       slideshowItems={slideshowItems}
       minimarketLogoCards={minimarketLogoCards}
-      supermarketLogoCards={supermarketLogoCards} // Meneruskan Logo Cards pertama Supermarket
+      supermarketLogoCards={supermarketLogoCards} 
       minimarketKatalogCards={minimarketKatalogCards}
-      supermarketLogoCardsBelowKatalog={supermarketLogoCardsBelowKatalog} // <<< TERUSKAN PROP BARU
+      supermarketLogoCardsBelowKatalog={supermarketLogoCardsBelowKatalog} 
+      supermarketKatalogCards={supermarketKatalogCards} 
       siteInfo={siteInfo}
     />
   );
